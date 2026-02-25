@@ -139,15 +139,22 @@
 
     /* ════════ FOTO fija ════════ */
     .photo-fixed {
-      width: 60%;
+      width: 100%;
+      height: 0;
+      padding-bottom: 60%; /* cuadrada 1:1 — cambiá este valor para otros formatos:
+                                75%      = horizontal 4:3
+                                56.25%   = panorámica 16:9
+                                133.33%  = vertical 3:4
+                                177.77%  = vertical 9:16  */
+      position: relative;
       overflow: hidden;
       flex-shrink: 0;
-      align-self: center;
     }
     .photo-fixed img {
-      width: 100%;
-      height: auto;
-      display: block;
+      position: absolute;
+      inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover; display: block;
     }
 
     /* ════════ TEXTO fijo ════════ */
@@ -257,13 +264,13 @@
   const FOTO = 'foto.jpg';
 
   // 💬 Texto fijo que aparece debajo de la foto
-  const TEXTO = 'Hoy celebramos algo muy especial\ny si estás acá es porque quiero\nque seas parte de este momento.';
+  const TEXTO = 'Hoy celebramos algo muy especial\ny quiero que seas parte de este momento.';
 
   // 🎵 Nombre del archivo de audio
   const AUDIO = 'intro.mp3';
 
   // 🔗 URL de tu Google Apps Script
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzRmd5-R9WvvrEKS2Vi0apgFUWOAGndDyEpHA_rbY55HFCeZCDK4llSXElovBCpqsKv-A/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/TU_SCRIPT_ID/exec';
 
   // ⏱️ Duración del audio en milisegundos
   const TOTAL_MS = 6000;
@@ -318,7 +325,7 @@
 
 <audio id="intro-audio" preload="auto"></audio>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
 <script>
 /* ── Inyectar config ── */
 document.getElementById('main-photo').src = FOTO;
@@ -470,34 +477,32 @@ function startShow(){
 async function captureFrame(){
   const frameEl = document.getElementById('frame-outer');
 
-  // Elementos a ocultar de la imagen final
-  const toHide = document.querySelectorAll('.field label, .btn-send, #status');
-  toHide.forEach(el => el.style.visibility = 'hidden');
-
-  // Rellenar el div de nombre en bold antes de capturar
+  // Nombre en bold
   document.getElementById('name-display').textContent =
     document.getElementById('nameInput').value.trim();
 
+  // Ocultar elementos que no van en la imagen
+  const toHide = document.querySelectorAll('.field label, .btn-send, #status');
+  toHide.forEach(el => el.style.visibility = 'hidden');
+
   // Expandir cuadro
   frameEl.classList.add('capturing');
-
-  // Esperar dos frames para asegurar repintado
   await new Promise(r => requestAnimationFrame(()=> requestAnimationFrame(r)));
 
-  const canvas = await html2canvas(frameEl, {
-    scale: 2,
-    useCORS: true,
-    backgroundColor: null,
-    // Captura la altura real del elemento expandido
-    height: frameEl.scrollHeight,
-    windowHeight: frameEl.scrollHeight + 200
-  });
-
-  // Restaurar estado normal
-  frameEl.classList.remove('capturing');
-  toHide.forEach(el => el.style.visibility = '');
-
-  return canvas.toDataURL('image/png').split(',')[1];
+  try {
+    const dataUrl = await domtoimage.toPng(frameEl, {
+      scale: 2,
+      bgcolor: '#ffffff',
+      filter: node => node.id !== 'party-canvas'
+    });
+    frameEl.classList.remove('capturing');
+    toHide.forEach(el => el.style.visibility = '');
+    return dataUrl.split(',')[1];
+  } catch(err) {
+    frameEl.classList.remove('capturing');
+    toHide.forEach(el => el.style.visibility = '');
+    throw err;
+  }
 }
 
 /* ══════════════════════════════════════
@@ -515,8 +520,9 @@ async function submitForm(){
   btn.disabled=true;
   st.textContent='Enviando...';
 
+  const img64 = await captureFrame().catch(e => { console.warn('Imagen omitida:', e); return null; });
+
   try{
-    const img64 = await captureFrame();
     await fetch(APPS_SCRIPT_URL,{
       method:'POST', mode:'no-cors',
       headers:{'Content-Type':'application/json'},
