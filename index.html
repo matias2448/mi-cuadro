@@ -139,20 +139,17 @@
 
     /* ════════ FOTO fija ════════ */
     .photo-fixed {
-  width: 100%;
-  height: 0;
-  padding-bottom: 60%;
-  position: relative;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-.photo-fixed img {
-  position: absolute;
-  inset: 0;
-  width: 100%; height: 100%;
-  object-fit: cover; display: block;
-}
-    
+      width: 60%;
+      overflow: hidden;
+      flex-shrink: 0;
+      align-self: center;
+    }
+    .photo-fixed img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
     /* ════════ TEXTO fijo ════════ */
     .center-text {
       font-family: 'Cormorant Garamond', serif;
@@ -213,8 +210,21 @@
       max-height: none !important;
       overflow: visible !important;
       height: auto !important;
-      
     }
+
+    /* Nombre en bold al exportar */
+    #name-display {
+      display: none;
+      width: 100%;
+      font-family: 'Lato', sans-serif;
+      font-size: 14px;
+      font-weight: bold;
+      color: var(--text-dark);
+      padding: 6px 2px;
+      border-bottom: 1px solid #ccc;
+    }
+    .frame-outer.capturing #nameInput   { display: none !important; }
+    .frame-outer.capturing #name-display { display: block !important; }
 
     .btn-send {
       align-self: center; margin-top: 4px;
@@ -247,13 +257,13 @@
   const FOTO = 'foto.jpg';
 
   // 💬 Texto fijo que aparece debajo de la foto
-  const TEXTO = 'Hoy celebramos algo muy especial\ny si estás acá es porque quiero \nque seas parte de este momento.';
+  const TEXTO = 'Hoy celebramos algo muy especial\ny si estás acá es porque quiero\nque seas parte de este momento.';
 
   // 🎵 Nombre del archivo de audio
   const AUDIO = 'intro.mp3';
 
   // 🔗 URL de tu Google Apps Script
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxJaxKd0DQ5HdI0f4z_8aDK4Lk41JvrvVq3qQ3TOBGFle-oPRbXvtNlc1vL_rM_psbeYw/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzRmd5-R9WvvrEKS2Vi0apgFUWOAGndDyEpHA_rbY55HFCeZCDK4llSXElovBCpqsKv-A/exec';
 
   // ⏱️ Duración del audio en milisegundos
   const TOTAL_MS = 6000;
@@ -291,6 +301,7 @@
         <div class="field">
           <label>Nombre</label>
           <input type="text" id="nameInput" placeholder="Tu nombre..." />
+          <div id="name-display"></div>
         </div>
         <div class="field">
           <label>Te invito a dejarme un lindo mensaje</label>
@@ -462,6 +473,10 @@ async function captureFrame(){
   // Elementos a ocultar de la imagen final
   const toHide = document.querySelectorAll('.field label, .btn-send, #status');
   toHide.forEach(el => el.style.visibility = 'hidden');
+
+  // Rellenar el div de nombre en bold antes de capturar
+  document.getElementById('name-display').textContent =
+    document.getElementById('nameInput').value.trim();
 
   // Expandir cuadro
   frameEl.classList.add('capturing');
