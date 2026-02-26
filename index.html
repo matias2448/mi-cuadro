@@ -264,7 +264,7 @@
   const FOTO = 'foto.jpg';
 
   // 💬 Texto fijo que aparece debajo de la foto
-  const TEXTO = 'Hoy celebramos algo muy especial\ny si estas acá es porque quiero\nque seas parte de este momento.';
+  const TEXTO = 'Hoy celebramos algo muy especial\ny si estás acá es porque quiero\n que seas parte de este momento.';
 
   // 🎵 Nombre del archivo de audio
   const AUDIO = 'intro.mp3';
@@ -482,9 +482,8 @@ async function captureFrame(){
   toHide.forEach(el => el.style.visibility = 'hidden');
 
   // Rellenar el div de nombre en bold antes de capturar
-  const nameDisplay = document.getElementById('name-display');
-  nameDisplay.textContent = document.getElementById('nameInput').value.trim();
-  nameDisplay.style.cssText = 'display:block;font-weight:bold;font-family:Lato,sans-serif;font-size:14px;color:#2a2a2a;padding:6px 2px;border-bottom:1px solid #ccc;width:100%';
+  document.getElementById('name-display').textContent =
+    document.getElementById('nameInput').value.trim();
 
   // Expandir cuadro
   frameEl.classList.add('capturing');
