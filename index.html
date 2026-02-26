@@ -127,7 +127,7 @@
       background: var(--mat-white);
       padding: 28px 24px 24px;
       display: flex; flex-direction: column;
-      align-items: center; gap: 6px;
+      align-items: center; gap: 18px;
       overflow-y: auto;
       max-height: calc(96vh - 36px);
     }
@@ -159,7 +159,6 @@
 
     /* ════════ TEXTO fijo ════════ */
     .center-text {
-      margin-top: -4px;
       font-family: 'Cormorant Garamond', serif;
       font-size: clamp(14px, 3.8vw, 21px);
       font-weight: 300; font-style: italic;
@@ -265,7 +264,7 @@
   const FOTO = 'foto.jpg';
 
   // 💬 Texto fijo que aparece debajo de la foto
-  const TEXTO = 'Hoy celebramos algo muy especial\ny si estás acá es porque quiero\n que seas parte de este momento.';
+  const TEXTO = 'Hoy celebramos algo muy especial,\ny si estás acá es porque quiero\n que seas parte de este momento.';
 
   // 🎵 Nombre del archivo de audio
   const AUDIO = 'intro.mp3';
@@ -326,7 +325,7 @@
 
 <audio id="intro-audio" preload="auto"></audio>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
 <script>
 /* ── Inyectar config ── */
 document.getElementById('main-photo').src = FOTO;
@@ -468,44 +467,36 @@ function startShow(){
 
 /* ══════════════════════════════════════
    CAPTURA CON EXPANSIÓN AUTOMÁTICA
-   ─────────────────────────────────────
-   1. Agrega clase .capturing → quita max-height y overflow
-   2. Espera un frame para que el DOM se repinte
-   3. html2canvas captura el cuadro expandido
-   4. Quita la clase → todo vuelve al estado normal
-   El usuario no percibe ningún cambio visual.
 ══════════════════════════════════════ */
 async function captureFrame(){
   const frameEl = document.getElementById('frame-outer');
 
-  // Elementos a ocultar de la imagen final
-  const toHide = document.querySelectorAll('.field label, .btn-send, #status');
-  toHide.forEach(el => el.style.visibility = 'hidden');
-
-  // Rellenar el div de nombre en bold antes de capturar
+  // Nombre en bold
   document.getElementById('name-display').textContent =
     document.getElementById('nameInput').value.trim();
 
+  // Ocultar elementos que no van en la imagen
+  const toHide = document.querySelectorAll('.field label, .btn-send, #status');
+  toHide.forEach(el => el.style.visibility = 'hidden');
+
   // Expandir cuadro
   frameEl.classList.add('capturing');
-
-  // Esperar dos frames para asegurar repintado
   await new Promise(r => requestAnimationFrame(()=> requestAnimationFrame(r)));
 
-  const canvas = await html2canvas(frameEl, {
-    scale: 2,
-    useCORS: true,
-    backgroundColor: null,
-    // Captura la altura real del elemento expandido
-    height: frameEl.scrollHeight,
-    windowHeight: frameEl.scrollHeight + 200
-  });
-
-  // Restaurar estado normal
-  frameEl.classList.remove('capturing');
-  toHide.forEach(el => el.style.visibility = '');
-
-  return canvas.toDataURL('image/png').split(',')[1];
+  try {
+    const dataUrl = await domtoimage.toPng(frameEl, {
+      scale: 2,
+      bgcolor: '#ffffff',
+      filter: node => node.id !== 'party-canvas'
+    });
+    frameEl.classList.remove('capturing');
+    toHide.forEach(el => el.style.visibility = '');
+    return dataUrl.split(',')[1];
+  } catch(err) {
+    frameEl.classList.remove('capturing');
+    toHide.forEach(el => el.style.visibility = '');
+    throw err;
+  }
 }
 
 /* ══════════════════════════════════════
@@ -523,8 +514,9 @@ async function submitForm(){
   btn.disabled=true;
   st.textContent='Enviando...';
 
+  const img64 = await captureFrame().catch(e => { console.warn('Imagen omitida:', e); return null; });
+
   try{
-    const img64 = await captureFrame();
     await fetch(APPS_SCRIPT_URL,{
       method:'POST', mode:'no-cors',
       headers:{'Content-Type':'application/json'},
@@ -549,3 +541,4 @@ window.addEventListener('resize', resizeCvs);
 </script>
 </body>
 </html>
+
